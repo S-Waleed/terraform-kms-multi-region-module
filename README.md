@@ -97,7 +97,7 @@ data "aws_iam_policy_document" "ebs_key" {
 }
 
 module "ebs_key" {
-  source = "./modules/kms/"
+  source = "git@github.com:masterwali/terraform-kms-multi-region-module.git"
 
   description        = "KMS key for EBS volumes."
   alias              = "multi-region-ebs"
