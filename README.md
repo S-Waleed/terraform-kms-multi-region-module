@@ -164,7 +164,7 @@ No modules.
 
 ## Author
 
-Module is maintained by [Waleed](https://cloudly.engineer).
+Module is maintained by [Waleed](https://cloudly.engineer). Here's a [blog link](https://cloudly.engineer/2021/terraform-aws-kms-multi-region-keys/aws/) about it.
 
 ## License
 
