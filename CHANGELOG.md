@@ -2,12 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-<a name="unreleased"></a>
-## [Unreleased]
+## v1.0.3 - 2021-12-13
 
+* Refactor provider to its own resource file
 
-
-<a name="v1.0.0"></a>
-## [v1.0.0] - 2021-10-05
+## v1.0.0 - 2021-10-05
 
 * Initial
