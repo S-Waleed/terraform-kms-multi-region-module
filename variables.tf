@@ -37,18 +37,18 @@ variable "primary_key_policy" {
   description = "(Required) The key policy to attach to the primary KMS key."
 }
 
-variable "replica_key_policy" {
-  type        = string
-  description = "(Required) The key policy to attach to the replica KMS key."
-}
-
-variable "replica_region" {
-  type        = string
-  description = "(required) The replica region for the KMS key."
-}
-
 variable "deletion_window_in_days" {
   type        = number
   description = "(optional) The waiting period, specified in number of days. After the waiting period ends, AWS KMS deletes the KMS key. If you specify a value, it must be between 7 and 30, inclusive. If you do not specify a value, it defaults to 30."
   default     = 30
+}
+
+variable "replica" {
+  type = object({
+    first_region      = string
+    first_key_policy  = string
+    second_region     = string
+    second_key_policy = string
+  })
+  description = "(optional) describe your variable"
 }
