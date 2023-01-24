@@ -2,116 +2,25 @@
 
 A Terraform module that creates multi-region KMS keys and the key alias resources on AWS Cloud.
 
+AWS Key Management Service (KMS) allows you to create and manage cryptographic keys that you can use to encrypt and decrypt data. One of the key features of KMS is the ability to create and manage keys across multiple regions.
+
+There are several benefits to using multi-region KMS keys:
+
+* Redundancy: By creating a key in multiple regions, you can ensure that you have a backup key available in case one region becomes unavailable.
+* Latency: By creating a key in the region closest to your users, you can reduce the latency of cryptographic operations.
+* Compliance: Some compliance requirements mandate that cryptographic keys must be stored in specific regions. By creating keys in multiple regions, you can ensure that you are compliant with these requirements.
+
+Once the key is created, you can use it to encrypt and decrypt data in any of the specified regions.
+
+It's important to note that multi-region KMS keys are regional resources, which means that each region has its own version of the key. This means that the key material, policies, and metadata for the key may be different in each region.
+
 ## Usage
 
-``` terraform
+See the [example](examples/) directory.
 
-data "aws_iam_policy_document" "ebs_key" {
-  statement {
-    sid       = "Enable IAM User Permissions"
-    effect    = "Allow"
-    actions   = ["kms:*"]
-    resources = ["*"]
+## Limitations
 
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:root"]
-    }
-  }
-
-  statement {
-    sid    = "Allow access for Key Administrators"
-    effect = "Allow"
-    actions = [
-      "kms:Create*",
-      "kms:Describe*",
-      "kms:Enable*",
-      "kms:List*",
-      "kms:Put*",
-      "kms:Update*",
-      "kms:Revoke*",
-      "kms:Disable*",
-      "kms:Get*",
-      "kms:Delete*",
-      "kms:TagResource",
-      "kms:UntagResource",
-      "kms:ScheduleKeyDeletion",
-      "kms:CancelKeyDeletion"
-    ]
-    resources = ["*"]
-
-    principals {
-      type = "AWS"
-      identifiers = [
-        "arn:aws:iam::${local.account_id}:user/${local.admin_username}",
-        "arn:aws:iam::${local.account_id}:role/${local.role_name}"
-      ]
-    }
-  }
-
-  statement {
-    sid    = "Allow use of the key"
-    effect = "Allow"
-    actions = [
-      "kms:Encrypt",
-      "kms:Decrypt",
-      "kms:ReEncrypt*",
-      "kms:GenerateDataKey*",
-      "kms:DescribeKey"
-    ]
-    resources = ["*"]
-
-    principals {
-      type = "AWS"
-      identifiers = [
-        "arn:aws:iam::${local.account_id}:user/${local.admin_username}",
-        "arn:aws:iam::${local.account_id}:role/${local.role_name}"
-      ]
-    }
-  }
-
-  statement {
-    sid    = "Allow attachment of persistent resources"
-    effect = "Allow"
-    actions = [
-      "kms:CreateGrant",
-      "kms:ListGrants",
-      "kms:RevokeGrant"
-    ]
-    resources = ["*"]
-
-    principals {
-      type = "AWS"
-      identifiers = [
-        "arn:aws:iam::${local.account_id}:user/${local.admin_username}",
-        "arn:aws:iam::${local.account_id}:role/${local.role_name}"
-      ]
-    }
-
-    condition {
-      test     = "Bool"
-      variable = "kms:GrantIsForAWSResource"
-      values   = ["true"]
-    }
-  }
-}
-
-module "ebs_key" {
-  source = "git@github.com:masterwali/terraform-kms-multi-region-module.git"
-
-  description        = "KMS key for EBS volumes."
-  alias              = "multi-region-ebs"
-  primary_key_policy = data.aws_iam_policy_document.ebs_key.json
-  replica_key_policy = data.aws_iam_policy_document.ebs_key.json
-  replica_region     = "us-west-2"
-
-  tags = {
-    Name  = "multi-region-ebs"
-    Owner = "Waleed"
-  }
-}
-
-```
+* This module can replicate the KMS key to only two regions.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
@@ -125,7 +34,8 @@ module "ebs_key" {
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 3.64.2 |
-| <a name="provider_aws.replica"></a> [aws.replica](#provider\_aws.replica) | >= 3.64.2 |
+| <a name="provider_aws.first_replica"></a> [aws.first\_replica](#provider\_aws.first\_replica) | >= 3.64.2 |
+| <a name="provider_aws.second_replica"></a> [aws.second\_replica](#provider\_aws.second\_replica) | >= 3.64.2 |
 
 ## Modules
 
@@ -135,10 +45,12 @@ No modules.
 
 | Name | Type |
 |------|------|
+| [aws_kms_alias.first_replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
 | [aws_kms_alias.primary](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
-| [aws_kms_alias.replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
+| [aws_kms_alias.second_replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_alias) | resource |
 | [aws_kms_key.primary](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
-| [aws_kms_replica_key.replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_replica_key) | resource |
+| [aws_kms_replica_key.first_replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_replica_key) | resource |
+| [aws_kms_replica_key.second_replica](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_replica_key) | resource |
 
 ## Inputs
 
@@ -149,9 +61,7 @@ No modules.
 | <a name="input_description"></a> [description](#input\_description) | The description of the key as viewed in AWS console. | `string` | n/a | yes |
 | <a name="input_is_enabled"></a> [is\_enabled](#input\_is\_enabled) | Specifies whether the key is enabled. | `bool` | `true` | no |
 | <a name="input_key_spec"></a> [key\_spec](#input\_key\_spec) | Specifies whether the key contains a symmetric key or an asymmetric key pair and the encryption algorithms or signing algorithms that the key supports. Valid values: SYMMETRIC\_DEFAULT, RSA\_2048, RSA\_3072, RSA\_4096, ECC\_NIST\_P256, ECC\_NIST\_P384, ECC\_NIST\_P521, or ECC\_SECG\_P256K1 | `string` | `"SYMMETRIC_DEFAULT"` | no |
-| <a name="input_primary_key_policy"></a> [primary\_key\_policy](#input\_primary\_key\_policy) | (Required) The key policy to attach to the primary KMS key. | `string` | n/a | yes |
-| <a name="input_replica_key_policy"></a> [replica\_key\_policy](#input\_replica\_key\_policy) | (Required) The key policy to attach to the replica KMS key. | `string` | n/a | yes |
-| <a name="input_replica_region"></a> [replica\_region](#input\_replica\_region) | (required) The replica region for the KMS key. | `string` | n/a | yes |
+| <a name="input_replica"></a> [replica](#input\_replica) | (optional) describe your variable | <pre>object({<br>    first_region      = string<br>    first_key_policy  = string<br>    second_region     = string<br>    second_key_policy = string<br>  })</pre> | n/a | yes |
 | <a name="input_rotation_enabled"></a> [rotation\_enabled](#input\_rotation\_enabled) | Specifies whether key rotation is enabled. | `bool` | `true` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to assign to the key. | `map(string)` | `{}` | no |
 

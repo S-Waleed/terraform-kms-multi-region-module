@@ -1,4 +1,9 @@
 provider "aws" {
-  alias  = "replica"
-  region = var.replica_region
+  alias  = "first_replica"
+  region = var.replica.first_region
+}
+
+provider "aws" {
+  alias  = "second_replica"
+  region = var.replica.second_region
 }

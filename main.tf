@@ -22,14 +22,15 @@ resource "aws_kms_alias" "primary" {
   target_key_id = aws_kms_key.primary.key_id
 }
 
+# First replica
 # Create the replica key using the primary's arn.
-resource "aws_kms_replica_key" "replica" {
-  provider = aws.replica
+resource "aws_kms_replica_key" "first_replica" {
+  provider = aws.first_replica
 
   description             = var.description
   deletion_window_in_days = var.deletion_window_in_days
   primary_key_arn         = aws_kms_key.primary.arn
-  policy                  = var.replica_key_policy
+  policy                  = var.replica.first_key_policy
 
   tags = merge(
     var.tags,
@@ -41,9 +42,36 @@ resource "aws_kms_replica_key" "replica" {
 }
 
 # Add an alias to the replica key
-resource "aws_kms_alias" "replica" {
-  provider = aws.replica
+resource "aws_kms_alias" "first_replica" {
+  provider = aws.first_replica
 
   name          = "alias/${var.alias}"
-  target_key_id = aws_kms_replica_key.replica.key_id
+  target_key_id = aws_kms_replica_key.first_replica.key_id
+}
+
+# Second replica
+# Create the replica key using the primary's arn.
+resource "aws_kms_replica_key" "second_replica" {
+  provider = aws.second_replica
+
+  description             = var.description
+  deletion_window_in_days = var.deletion_window_in_days
+  primary_key_arn         = aws_kms_key.primary.arn
+  policy                  = var.replica.second_key_policy
+
+  tags = merge(
+    var.tags,
+    {
+      "Multi-Region" = "true",
+      "Primary"      = "false"
+    }
+  )
+}
+
+# Add an alias to the replica key
+resource "aws_kms_alias" "second_replica" {
+  provider = aws.second_replica
+
+  name          = "alias/${var.alias}"
+  target_key_id = aws_kms_replica_key.second_replica.key_id
 }
